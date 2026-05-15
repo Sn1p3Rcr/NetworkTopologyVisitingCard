@@ -1,0 +1,44 @@
+@model NetworkTopologyVisitingCard.Models.ApplicationUser
+
+@{
+    ViewData["Title"] = "Детали пользователя";
+}
+
+<div class="container">
+    <h1>@ViewData["Title"]</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title">Информация о пользователе</h5>
+            <dl class="row">
+                <dt class="col-sm-3">Имя пользователя:</dt>
+                <dd class="col-sm-9">@Model.UserName</dd>
+
+                <dt class="col-sm-3">Email:</dt>
+                <dd class="col-sm-9">@Model.Email</dd>
+
+                <dt class="col-sm-3">Полное имя:</dt>
+                <dd class="col-sm-9">@Model.FullName</dd>
+
+                <dt class="col-sm-3">Дата регистрации:</dt>
+                <dd class="col-sm-9">@Model.RegistrationDate.ToString("dd.MM.yyyy HH:mm")</dd>
+
+                <dt class="col-sm-3">Роли:</dt>
+                <dd class="col-sm-9">
+                    @if (ViewData["Roles"] is IList<string> roles && roles.Any())
+                    {
+                        @string.Join(", ", roles)
+                    }
+                    else
+                    {
+                        <span class="text-muted">Роли не назначены</span>
+                    }
+                </dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a asp-action="Index" class="btn btn-secondary">Назад к списку</a>
+    </div>
+</div>

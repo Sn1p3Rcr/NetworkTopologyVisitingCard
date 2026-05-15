@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>REST-клиент — Topology Visualizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="/client/css/app.css" />
+</head>
+<body class="client-app">
+<div id="app">
+    <!-- Экран входа -->
+    <div v-if="!authenticated" class="auth-screen">
+        <div class="auth-card">
+            <h1>Topology REST Client</h1>
+            <p class="subtitle">Клиентское приложение (Vue 3) для работы с ASP.NET Core API и JWT</p>
+
+            <ul class="nav nav-pills nav-fill mb-3">
+                <li class="nav-item">
+                    <button class="nav-link" :class="{ active: authMode === 'login' }" @click="authMode = 'login'">Вход</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" :class="{ active: authMode === 'register' }" @click="authMode = 'register'">Регистрация</button>
+                </li>
+            </ul>
+
+            <form v-if="authMode === 'login'" @submit.prevent="login">
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input v-model="loginForm.email" type="email" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Пароль</label>
+                    <input v-model="loginForm.password" type="password" class="form-control" required />
+                </div>
+                <button type="submit" class="btn btn-accent w-100" :disabled="loading">Войти</button>
+                <p class="text-muted small mt-3 mb-0">Демо: admin@topology.com / Admin123!</p>
+            </form>
+
+            <form v-else @submit.prevent="register">
+                <div class="mb-3">
+                    <label class="form-label">Имя</label>
+                    <input v-model="registerForm.fullName" class="form-control" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input v-model="registerForm.email" type="email" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Пароль</label>
+                    <input v-model="registerForm.password" type="password" class="form-control" required minlength="3" />
+                </div>
+                <button type="submit" class="btn btn-accent w-100" :disabled="loading">Зарегистрироваться</button>
+            </form>
+
+            <a href="/" class="d-block text-center mt-3 small text-muted">← На сайт-визитку</a>
+        </div>
+    </div>
+
+    <!-- Основное приложение -->
+    <div v-else class="app-shell">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                Topology Client
+                <span>Vue 3 + REST API</span>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-btn" :class="{ active: section === 'dashboard' }" @click="section = 'dashboard'">📊 Обзор</button>
+                <button class="nav-btn" :class="{ active: section === 'projects' }" @click="section = 'projects'">📁 Проекты</button>
+                <button class="nav-btn" :class="{ active: section === 'reviews' }" @click="section = 'reviews'">💬 Отзывы</button>
+                <button class="nav-btn" :class="{ active: section === 'technologies' }" @click="section = 'technologies'">⚙️ Технологии</button>
+                <button class="nav-btn" :class="{ active: section === 'topologies' }" @click="section = 'topologies'">🔗 Топологии</button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-email">{{ auth?.email }}</div>
+                <div class="user-roles">
+                    <span v-for="r in auth?.roles" :key="r" class="badge bg-secondary badge-role">{{ r }}</span>
+                </div>
+                <button class="btn btn-outline-light btn-sm w-100 mt-2" @click="logout">Выйти</button>
+                <a href="/" class="d-block text-center mt-2 small text-muted">Сайт-визитка</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div v-if="loading" class="text-center py-4 text-muted">Загрузка...</div>
+
+            <!-- Dashboard -->
+            <section v-show="section === 'dashboard' && !loading">
+                <div class="page-header">
+                    <h2>Обзор данных</h2>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-card"><div class="value">{{ stats.projects }}</div><div class="label">Проектов</div></div>
+                    <div class="stat-card"><div class="value">{{ stats.reviews }}</div><div class="label">Отзывов</div></div>
+                    <div class="stat-card"><div class="value">{{ stats.technologies }}</div><div class="label">Технологий</div></div>
+                    <div class="stat-card"><div class="value">{{ stats.topologies }}</div><div class="label">Топологий</div></div>
+                </div>
+                <p class="text-muted">Клиент выполняет CRUD через REST API с JWT-авторизацией. Выберите раздел в меню слева.</p>
+            </section>
+
+            <!-- Projects -->
+            <section v-show="section === 'projects' && !loading">
+                <div class="page-header">
+                    <h2>Проекты</h2>
+                    <button v-if="canWrite" class="btn btn-accent btn-sm" @click="openModal('project', 'create')">+ Добавить</button>
+                </div>
+                <div class="data-card">
+                    <table class="table table-dark-custom table-hover mb-0">
+                        <thead>
+                            <tr><th>ID</th><th>Название</th><th>Автор</th><th>Дата</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="p in projects" :key="p.id">
+                                <td>{{ p.id }}</td>
+                                <td>{{ p.title }}</td>
+                                <td>{{ p.author }}</td>
+                                <td>{{ formatDate(p.createdDate) }}</td>
+                                <td class="text-end text-nowrap">
+                                    <button v-if="canAdmin" class="btn btn-sm btn-outline-warning me-1" @click="openModal('project', 'edit', p)">✎</button>
+                                    <button v-if="canAdmin" class="btn btn-sm btn-outline-danger" @click="removeItem('project', p.id)">✕</button>
+                                </td>
+                            </tr>
+                            <tr v-if="projects.length === 0"><td colspan="5" class="empty-state">Нет проектов</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Reviews -->
+            <section v-show="section === 'reviews' && !loading">
+                <div class="page-header">
+                    <h2>Отзывы</h2>
+                    <button v-if="canWrite" class="btn btn-accent btn-sm" @click="openModal('review', 'create')">+ Добавить</button>
+                </div>
+                <div class="filter-bar">
+                    <label class="text-muted small">Фильтр по проекту:</label>
+                    <select v-model="reviewProjectFilter" class="form-select form-select-sm" style="max-width:280px">
+                        <option value="">Все проекты</option>
+                        <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.title }}</option>
+                    </select>
+                </div>
+                <div class="data-card">
+                    <table class="table table-dark-custom table-hover mb-0">
+                        <thead>
+                            <tr><th>ID</th><th>Автор</th><th>Рейтинг</th><th>Проект</th><th>Текст</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="r in filteredReviews" :key="r.id">
+                                <td>{{ r.id }}</td>
+                                <td>{{ r.authorName }}</td>
+                                <td>{{ '★'.repeat(r.rating) }}</td>
+                                <td>{{ projectTitle(r.projectId) }}</td>
+                                <td class="small">{{ r.content && r.content.length > 50 ? r.content.slice(0, 50) + '…' : r.content }}</td>
+                                <td class="text-end text-nowrap">
+                                    <button v-if="canWrite" class="btn btn-sm btn-outline-warning me-1" @click="openModal('review', 'edit', r)">✎</button>
+                                    <button v-if="canAdmin" class="btn btn-sm btn-outline-danger" @click="removeItem('review', r.id)">✕</button>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredReviews.length === 0"><td colspan="6" class="empty-state">Нет отзывов</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Technologies -->
+            <section v-show="section === 'technologies' && !loading">
+                <div class="page-header">
+                    <h2>Технологии</h2>
+                    <button v-if="canAdmin" class="btn btn-accent btn-sm" @click="openModal('technology', 'create')">+ Добавить</button>
+                </div>
+                <div class="data-card">
+                    <table class="table table-dark-custom table-hover mb-0">
+                        <thead>
+                            <tr><th>ID</th><th>Название</th><th>Категория</th><th>Описание</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="t in technologies" :key="t.id">
+                                <td>{{ t.id }}</td>
+                                <td>{{ t.name }}</td>
+                                <td><span class="badge bg-info">{{ t.category }}</span></td>
+                                <td class="small">{{ t.description }}</td>
+                                <td class="text-end text-nowrap">
+                                    <button v-if="canAdmin" class="btn btn-sm btn-outline-warning me-1" @click="openModal('technology', 'edit', t)">✎</button>
+                                    <button v-if="canAdmin" class="btn btn-sm btn-outline-danger" @click="removeItem('technology', t.id)">✕</button>
+                                </td>
+                            </tr>
+                            <tr v-if="technologies.length === 0"><td colspan="5" class="empty-state">Нет технологий</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Topologies -->
+            <section v-show="section === 'topologies' && !loading">
+                <div class="page-header">
+                    <h2>Сетевые топологии</h2>
+                    <button v-if="canWrite" class="btn btn-accent btn-sm" @click="openModal('topology', 'create')">+ Добавить</button>
+                </div>
+                <div class="filter-bar">
+                    <label class="text-muted small">Фильтр по проекту:</label>
+                    <select v-model="topologyProjectFilter" class="form-select form-select-sm" style="max-width:280px">
+                        <option value="">Все проекты</option>
+                        <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.title }}</option>
+                    </select>
+                </div>
+                <div class="data-card">
+                    <table class="table table-dark-custom table-hover mb-0">
+                        <thead>
+                            <tr><th>ID</th><th>Название</th><th>Проект</th><th>Дата</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="t in filteredTopologies" :key="t.id">
+                                <td>{{ t.id }}</td>
+                                <td>{{ t.name }}</td>
+                                <td>{{ projectTitle(t.projectId) }}</td>
+                                <td>{{ formatDate(t.createdDate) }}</td>
+                                <td class="text-end text-nowrap">
+                                    <button v-if="canWrite" class="btn btn-sm btn-outline-warning me-1" @click="openModal('topology', 'edit', t)">✎</button>
+                                    <button v-if="canAdmin" class="btn btn-sm btn-outline-danger" @click="removeItem('topology', t.id)">✕</button>
+                                </td>
+                            </tr>
+                            <tr v-if="filteredTopologies.length === 0"><td colspan="5" class="empty-state">Нет топологий</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Модальное окно -->
+    <div v-if="modal.show" class="modal d-block" tabindex="-1" style="background:rgba(0,0,0,.6)">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{ modal.title }}</h5>
+                    <button type="button" class="btn-close btn-close-white" @click="closeModal"></button>
+                </div>
+                <div class="modal-body">
+                    <template v-if="modal.entity === 'project'">
+                        <div class="mb-3"><label class="form-label">Название</label><input v-model="modal.data.title" class="form-control" required /></div>
+                        <div class="mb-3"><label class="form-label">Описание</label><textarea v-model="modal.data.description" class="form-control" rows="3"></textarea></div>
+                        <div class="mb-3"><label class="form-label">Технологии</label><input v-model="modal.data.technologies" class="form-control" /></div>
+                        <div class="mb-3"><label class="form-label">URL изображения</label><input v-model="modal.data.imageUrl" class="form-control" /></div>
+                        <div class="mb-3"><label class="form-label">Автор</label><input v-model="modal.data.author" class="form-control" /></div>
+                    </template>
+                    <template v-else-if="modal.entity === 'review'">
+                        <div class="mb-3"><label class="form-label">Проект</label>
+                            <select v-model="modal.data.projectId" class="form-select">
+                                <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.title }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-3"><label class="form-label">Автор отзыва</label><input v-model="modal.data.authorName" class="form-control" /></div>
+                        <div class="mb-3"><label class="form-label">Рейтинг (1-5)</label><input v-model.number="modal.data.rating" type="number" min="1" max="5" class="form-control" /></div>
+                        <div class="mb-3"><label class="form-label">Текст</label><textarea v-model="modal.data.content" class="form-control" rows="4"></textarea></div>
+                    </template>
+                    <template v-else-if="modal.entity === 'technology'">
+                        <div class="mb-3"><label class="form-label">Название</label><input v-model="modal.data.name" class="form-control" /></div>
+                        <div class="mb-3"><label class="form-label">Категория</label><input v-model="modal.data.category" class="form-control" placeholder="Frontend, Backend..." /></div>
+                        <div class="mb-3"><label class="form-label">Описание</label><textarea v-model="modal.data.description" class="form-control" rows="3"></textarea></div>
+                    </template>
+                    <template v-else-if="modal.entity === 'topology'">
+                        <div class="mb-3"><label class="form-label">Проект</label>
+                            <select v-model="modal.data.projectId" class="form-select">
+                                <option v-for="p in projects" :key="p.id" :value="p.id">{{ p.title }}</option>
+                            </select>
+                        </div>
+                        <div class="mb-3"><label class="form-label">Название</label><input v-model="modal.data.name" class="form-control" /></div>
+                        <div class="mb-3"><label class="form-label">Описание</label><textarea v-model="modal.data.description" class="form-control" rows="2"></textarea></div>
+                        <div class="mb-3"><label class="form-label">JSON топологии</label><textarea v-model="modal.data.topologyData" class="form-control font-monospace" rows="5"></textarea></div>
+                    </template>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @click="closeModal">Отмена</button>
+                    <button class="btn btn-accent" @click="saveModal" :disabled="loading">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast-container">
+        <div v-if="toast.show" class="toast show align-items-center text-white border-0" :class="toast.type === 'danger' ? 'bg-danger' : 'bg-success'" role="alert">
+            <div class="d-flex"><div class="toast-body">{{ toast.message }}</div></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script type="module" src="/client/js/app.js"></script>
+</body>
+</html>

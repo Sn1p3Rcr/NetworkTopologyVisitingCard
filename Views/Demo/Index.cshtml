@@ -1,0 +1,369 @@
+@using NetworkTopologyVisitingCard.Controllers
+@model DemoBrowserData
+@{
+    ViewData["Title"] = "Демонстрация: Куки, Кэш, Сессии";
+}
+
+<style>
+    .demo-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .demo-subsection {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        border-left: 4px solid #fff;
+    }
+
+    .demo-code {
+        background: #2d3748;
+        color: #a0aec0;
+        padding: 15px;
+        border-radius: 5px;
+        font-family: 'Courier New', monospace;
+        overflow-x: auto;
+        margin: 10px 0;
+        font-size: 12px;
+    }
+
+    .demo-button {
+        margin: 5px;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .demo-button-session {
+        background: #48bb78;
+        color: white;
+    }
+
+    .demo-button-session:hover {
+        background: #38a169;
+        transform: translateY(-2px);
+    }
+
+    .demo-button-cache {
+        background: #ed8936;
+        color: white;
+    }
+
+    .demo-button-cache:hover {
+        background: #dd6b20;
+        transform: translateY(-2px);
+    }
+
+    .demo-button-cookie {
+        background: #3182ce;
+        color: white;
+    }
+
+    .demo-button-cookie:hover {
+        background: #2c5282;
+        transform: translateY(-2px);
+    }
+
+    .demo-info-box {
+        background: #edf2f7;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+        border-left: 4px solid #667eea;
+        color: #2d3748;
+    }
+
+    .stat-block {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        color: #2d3748;
+        margin: 10px 0;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: #718096;
+        margin-top: 5px;
+    }
+</style>
+
+<div class="container mt-4">
+    <h1 class="mb-4">🎓 Демонстрация: Куки, Кэш и Сессии в ASP.NET Core</h1>
+    
+    <!-- СЕССИИ -->
+    <div class="demo-section">
+        <h2>📝 Сессии (Sessions)</h2>
+        <p>Сессии хранят данные пользователя на сервере. Каждый пользователь имеет уникальный ID сессии.</p>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="stat-block">
+                    <div class="stat-label">Посещений на этой сессии</div>
+                    <div class="stat-value">@Model.SessionVisits</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-block">
+                    <div class="stat-label">Данные в сессии</div>
+                    <div class="stat-value" style="font-size: 16px;">@Model.SessionUserData</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-subsection">
+            <h5>Как это работает:</h5>
+            <div class="demo-code">
+// В контроллере:
+var visits = HttpContext.Session.GetInt32("Visits") ?? 0;
+visits++;
+HttpContext.Session.SetInt32("Visits", visits);
+            </div>
+
+            <h5 style="margin-top: 20px;">Тестируйте сессию:</h5>
+            <form method="post" action="/Demo/SetSessionData" style="display: inline;">
+                <input type="text" name="userData" placeholder="Введите данные" class="form-control d-inline" style="width: auto; display: inline-block; margin-right: 10px;">
+                <button type="submit" class="demo-button demo-button-session">💾 Сохранить в сессию</button>
+            </form>
+            <a href="/Demo/ClearSessionDemo" class="demo-button demo-button-session">🗑️ Очистить сессию</a>
+
+            <p style="margin-top: 15px; font-size: 12px;">
+                ⏱️ <strong>Время жизни:</strong> 30 минут неактивности<br>
+                🔒 <strong>Хранилище:</strong> Память сервера<br>
+                🌐 <strong>Область действия:</strong> Текущий браузер
+            </p>
+        </div>
+    </div>
+
+    <!-- КЭШ -->
+    <div class="demo-section" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <h2>⚡ Память-кэш (In-Memory Cache)</h2>
+        <p>Кэш хранит часто используемые данные в памяти сервера для быстрого доступа.</p>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="stat-block">
+                    <div class="stat-label">Количество обращений к кэшу</div>
+                    <div class="stat-value">@Model.CacheCounter</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-block">
+                    <div class="stat-label">Статус</div>
+                    <div style="font-size: 18px; color: #48bb78; margin-top: 10px;">✅ Активен</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-subsection">
+            <h5>Как это работает:</h5>
+            <div class="demo-code">
+// В контроллере:
+var cacheKey = "TotalVisits";
+if (!cache.TryGetValue(cacheKey, out int value)) {
+    value = 0;
+}
+value++;
+cache.Set(cacheKey, value, TimeSpan.FromHours(1));
+            </div>
+
+            <h5 style="margin-top: 20px;">Тестируйте кэш:</h5>
+            <a href="/Demo/ClearCacheDemo" class="demo-button demo-button-cache">🗑️ Сбросить кэш</a>
+
+            <p style="margin-top: 15px; font-size: 12px;">
+                ⏱️ <strong>Время жизни:</strong> 1 час (затем автоматически удаляется)<br>
+                🔒 <strong>Хранилище:</strong> Память сервера<br>
+                🌐 <strong>Область действия:</strong> Все пользователи<br>
+                ⚠️ <strong>Примечание:</strong> Теряется при перезагрузке приложения
+            </p>
+        </div>
+    </div>
+
+    <!-- КУКИ -->
+    <div class="demo-section" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+        <h2>🍪 Куки (Cookies)</h2>
+        <p>Куки хранят данные на компьютере клиента и отправляются с каждым запросом к серверу.</p>
+        
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="stat-block">
+                    <div class="stat-label">Текущая тема</div>
+                    <div class="stat-value" style="font-size: 20px;">@(Model.Theme == "light" ? "☀️" : "🌙") @Model.Theme</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-block">
+                    <div class="stat-label">Язык интерфейса</div>
+                    <div class="stat-value" style="font-size: 20px;">@(Model.Language == "ru" ? "🇷🇺" : "🇬🇧") @Model.Language</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="stat-block">
+                    <div class="stat-label">Тип хранилища</div>
+                    <div style="font-size: 14px; color: #2d3748; margin-top: 10px;">📱 Браузер клиента</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-subsection">
+            <h5>Как это работает:</h5>
+            <div class="demo-code">
+// В контроллере:
+var options = new CookieOptions { 
+    Expires = DateTime.Now.AddDays(30),
+    IsEssential = true 
+};
+Response.Cookies.Append("Theme", "dark", options);
+            </div>
+
+            <h5 style="margin-top: 20px;">Тестируйте куки:</h5>
+            <div style="margin-bottom: 15px;">
+                <strong>Выберите тему:</strong><br>
+                <a href="/Demo/SetTheme?theme=light" class="demo-button demo-button-cookie">☀️ Светлая тема</a>
+                <a href="/Demo/SetTheme?theme=dark" class="demo-button demo-button-cookie">🌙 Темная тема</a>
+                <a href="/Demo/SetTheme?theme=blue" class="demo-button demo-button-cookie">🔵 Синяя тема</a>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <strong>Выберите язык:</strong><br>
+                <a href="/Demo/SetLanguage?language=ru" class="demo-button demo-button-cookie">🇷🇺 Русский</a>
+                <a href="/Demo/SetLanguage?language=en" class="demo-button demo-button-cookie">🇬🇧 English</a>
+            </div>
+
+            <a href="/Demo/ClearCookiesDemo" class="demo-button demo-button-cookie">🗑️ Удалить все куки</a>
+
+            <p style="margin-top: 15px; font-size: 12px;">
+                ⏱️ <strong>Время жизни:</strong> 365 дней (или до ручного удаления)<br>
+                🔒 <strong>Хранилище:</strong> Жесткий диск клиента<br>
+                🌐 <strong>Область действия:</strong> Определяется доменом<br>
+                👁️ <strong>Видимость:</strong> Видна клиенту (в инструментах разработчика)<br>
+                ⚠️ <strong>Примечание:</strong> НЕ должна содержать секретные данные без шифрования
+            </p>
+        </div>
+    </div>
+
+    <!-- СРАВНИТЕЛЬНАЯ ТАБЛИЦА -->
+    <div class="demo-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h2>📊 Сравнение механизмов</h2>
+        
+        <div class="table-responsive">
+            <table class="table table-dark table-striped">
+                <thead>
+                    <tr style="background: rgba(255, 255, 255, 0.1);">
+                        <th>Параметр</th>
+                        <th>Сессии</th>
+                        <th>Кэш</th>
+                        <th>Куки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Хранилище</strong></td>
+                        <td>Память сервера</td>
+                        <td>Память сервера</td>
+                        <td>Браузер клиента</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Время жизни</strong></td>
+                        <td>30 мин неактивности</td>
+                        <td>1 час (настраивается)</td>
+                        <td>30-365 дней</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Область действия</strong></td>
+                        <td>Один браузер</td>
+                        <td>Все пользователи</td>
+                        <td>Один браузер</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Безопасность</strong></td>
+                        <td>Высокая ✅</td>
+                        <td>Высокая ✅</td>
+                        <td>Низкая ⚠️</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Размер</strong></td>
+                        <td>Неограничен</td>
+                        <td>Неограничен</td>
+                        <td>4 KB на куку</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Когда использовать</strong></td>
+                        <td>Данные пользователя</td>
+                        <td>Часто используемые данные</td>
+                        <td>Настройки пользователя</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ -->
+    <div class="demo-section" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #2d3748;">
+        <h2>💡 Реальные примеры использования</h2>
+        
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h5>🛒 Интернет-магазин</h5>
+                    <ul style="font-size: 13px;">
+                        <li><strong>Сессия:</strong> Товары в корзине</li>
+                        <li><strong>Кэш:</strong> Список категорий</li>
+                        <li><strong>Куки:</strong> Предпочтения товаров</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #ed8936;">
+                    <h5>📱 Социальная сеть</h5>
+                    <ul style="font-size: 13px;">
+                        <li><strong>Сессия:</strong> ID текущего пользователя</li>
+                        <li><strong>Кэш:</strong> Популярные посты</li>
+                        <li><strong>Куки:</strong> Тема оформления</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #3182ce;">
+                    <h5>📊 Аналитический сервис</h5>
+                    <ul style="font-size: 13px;">
+                        <li><strong>Сессия:</strong> Данные анализа</li>
+                        <li><strong>Кэш:</strong> Метрики и статистика</li>
+                        <li><strong>Куки:</strong> Отслеживание посетителя</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <h5>ℹ️ Попробуйте:</h5>
+        <ul>
+            <li>Откройте сайт в разных вкладках браузера - <strong>сессии</strong> будут разными</li>
+            <li>Очистите кэш и перезагрузите страницу - счетчик <strong>кэша</strong> обнулится</li>
+            <li>Закройте браузер и откройте снова - <strong>куки</strong> останутся, а <strong>сессия</strong> исчезнет</li>
+            <li>Посмотрите на вкладке DevTools → Application → Cookies - там хранятся куки</li>
+        </ul>
+    </div>
+
+    <p class="text-center mt-5 mb-5">
+        <a href="/" class="btn btn-primary btn-lg">← Вернуться на главную</a>
+        <a href="/Demo/Info" class="btn btn-secondary btn-lg">Подробнее о механизмах →</a>
+    </p>
+</div>

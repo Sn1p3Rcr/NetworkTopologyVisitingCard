@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: networkTopology_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: resu
+      POSTGRES_DB: NetworkTopologyDB
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ntvc-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: networkTopology_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=NetworkTopologyDB;Username=postgres;Password=resu"
+      Jwt__Key: "NetworkTopologyVisitingCard_SuperSecretKey_2026_Min32Chars!"
+      Jwt__Issuer: "NetworkTopologyVisitingCard"
+      Jwt__Audience: "NetworkTopologyVisitingCardClients"
+      Jwt__ExpireHours: "24"
+    ports:
+      - "5000:80"
+    networks:
+      - ntvc-network
+
+volumes:
+  postgres_data:
+
+networks:
+  ntvc-network:
+    driver: bridge

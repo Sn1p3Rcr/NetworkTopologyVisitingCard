@@ -1,0 +1,53 @@
+﻿@{
+    ViewData["Title"] = "Визуализатор сетевых топологий";
+}
+
+<div class="hero-section">
+    <div class="container text-center">
+        <h1 class="display-4 mb-4">Визуализатор сетевых топологий</h1>
+        <p class="lead mb-4">Инновационный инструмент для проектирования и анализа сетевых инфраструктур</p>
+        
+        <!-- Отображение счетчиков -->
+        <div class="stats mb-4">
+            <small class="text-light">
+                Вы посетили эту страницу: <strong>@ViewData["ViewCount"]</strong> раз |
+                Всего посещений сайта: <strong>@ViewData["TotalVisits"]</strong>
+            </small>
+        </div>
+
+        <div class="mt-4">
+            <a href="/Home/Demo" class="btn btn-primary btn-lg me-3">Смотреть демо</a>
+            <a href="/Home/About" class="btn btn-outline-light btn-lg">Узнать больше</a>
+            
+            <!-- Кнопки для управления темой, сессией и кэшем -->
+            <div class="mt-3">
+                <small>
+                    <a href="/Home/ChangeTheme?theme=light" class="text-light me-2">Светлая тема</a>
+                    <a href="/Home/ChangeTheme?theme=dark" class="text-light me-2">Темная тема</a>
+                    <a href="/Home/ClearSession" class="text-light me-2">Очистить сессию</a>
+                    <a href="/Home/ClearCache" class="text-light">Сбросить кэш</a>
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-icon">🔧</div>
+            <h3>Проектирование</h3>
+            <p>Создавайте сложные сетевые топологии с помощью интуитивного интерфейса</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-icon">📊</div>
+            <h3>Визуализация</h3>
+            <p>Наглядное представление сетевой инфраструктуры в реальном времени</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <div class="feature-icon">⚡</div>
+            <h3>Анализ</h3>
+            <p>Мощные инструменты для анализа и оптимизации сетевых конфигураций</p>
+        </div>
+    </div>
+</div>

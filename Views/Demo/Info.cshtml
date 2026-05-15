@@ -1,0 +1,405 @@
+@{
+    ViewData["Title"] = "Информация о механизмах хранения данных";
+}
+
+<style>
+    .info-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 10px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .code-block {
+        background: #2d3748;
+        color: #a0aec0;
+        padding: 20px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        overflow-x: auto;
+        margin: 15px 0;
+        line-height: 1.6;
+    }
+
+    .pro-con {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin: 20px 0;
+    }
+
+    .pro-list, .con-list {
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    .pro-list {
+        background: #c6f6d5;
+        border-left: 4px solid #38a169;
+        color: #22543d;
+    }
+
+    .con-list {
+        background: #fed7d7;
+        border-left: 4px solid #c53030;
+        color: #742a2a;
+    }
+
+    .pro-list h5, .con-list h5 {
+        margin-bottom: 15px;
+    }
+
+    .pro-list li, .con-list li {
+        margin-bottom: 8px;
+    }
+</style>
+
+<div class="container mt-5">
+    <h1 class="mb-5">📚 Подробное объяснение механизмов хранения данных</h1>
+
+    <!-- СЕССИИ -->
+    <div class="info-card">
+        <h2>📝 Сессии (Server-Side Sessions)</h2>
+        <p>Сессии - это механизм для сохранения состояния пользователя между запросами. Данные хранятся на сервере, а клиенту отправляется только ID сессии.</p>
+
+        <h4 class="mt-4">Как работают сессии:</h4>
+        <ol>
+            <li>Клиент отправляет первый запрос к серверу</li>
+            <li>Сервер создает уникальный ID сессии и объект сессии в памяти</li>
+            <li>ID сессии отправляется клиенту в виде куки</li>
+            <li>Клиент отправляет ID сессии с каждым запросом</li>
+            <li>Сервер находит соответствующий объект сессии и может использовать сохраненные данные</li>
+        </ol>
+
+        <h4>Код в Program.cs (настройка):</h4>
+        <div class="code-block">builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;      // Недоступна JavaScript
+    options.Cookie.IsEssential = true;   // Не требует согласия GDPR
+});
+
+// В middleware pipeline:
+app.UseSession();</div>
+
+        <h4>Код в контроллере (использование):</h4>
+        <div class="code-block">// Чтение из сессии
+var userId = HttpContext.Session.GetString("UserId");
+var count = HttpContext.Session.GetInt32("Count") ?? 0;
+
+// Запись в сессию
+HttpContext.Session.SetString("UserId", "user123");
+HttpContext.Session.SetInt32("Count", count + 1);
+
+// Удаление из сессии
+HttpContext.Session.Remove("UserId");</div>
+
+        <div class="pro-con">
+            <div class="pro-list">
+                <h5>✅ Преимущества</h5>
+                <ul>
+                    <li>Данные защищены от клиента</li>
+                    <li>Большой объем памяти</li>
+                    <li>Быстрый доступ</li>
+                    <li>Подходит для учетных данных</li>
+                    <li>Автоматическое удаление</li>
+                </ul>
+            </div>
+            <div class="con-list">
+                <h5>❌ Недостатки</h5>
+                <ul>
+                    <li>Занимает память сервера</li>
+                    <li>Не работает между серверами</li>
+                    <li>Теряется при перезагрузке</li>
+                    <li>Требует конфигурации</li>
+                    <li>Медленнее чем куки</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4>Используйте сессии для:</h4>
+        <ul>
+            <li>📌 Аутентификации пользователя</li>
+            <li>🛒 Содержимого корзины покупок</li>
+            <li>📋 Временных данных формы</li>
+            <li>🔐 Чувствительных данных (пароли, токены)</li>
+        </ul>
+    </div>
+
+    <!-- КЭШ -->
+    <div class="info-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+        <h2>⚡ Память-кэш (In-Memory Cache)</h2>
+        <p>Кэш в памяти используется для хранения часто используемых данных, чтобы избежать дорогостоящих операций (чтение БД, вызовы API).</p>
+
+        <h4 class="mt-4">Как работает кэш:</h4>
+        <ol>
+            <li>Данные загружаются один раз и сохраняются в памяти сервера</li>
+            <li>Последующие запросы получают данные из памяти (очень быстро)</li>
+            <li>Через определенное время данные автоматически удаляются</li>
+            <li>Можно вручную инвалидировать кэш</li>
+        </ol>
+
+        <h4>Код в Program.cs (настройка):</h4>
+        <div class="code-block">// Добавляем сервис кэша
+builder.Services.AddMemoryCache();</div>
+
+        <h4>Код в контроллере (использование):</h4>
+        <div class="code-block">public class MyController : Controller
+{
+    private readonly IMemoryCache _cache;
+
+    public MyController(IMemoryCache cache)
+    {
+        _cache = cache;
+    }
+
+    public IActionResult Index()
+    {
+        var cacheKey = "MyData";
+        
+        // Попытаться получить из кэша
+        if (_cache.TryGetValue(cacheKey, out List<string> data))
+        {
+            // Данные найдены в кэше
+            return View(data);
+        }
+
+        // Данные не в кэше, загружаем с сервера
+        data = LoadDataFromDatabase();
+
+        // Сохраняем в кэш на 1 час
+        _cache.Set(cacheKey, data, TimeSpan.FromHours(1));
+
+        return View(data);
+    }
+
+    public IActionResult InvalidateCache()
+    {
+        // Удаляем данные из кэша
+        _cache.Remove("MyData");
+        return Ok();
+    }
+}</div>
+
+        <div class="pro-con">
+            <div class="pro-list">
+                <h5>✅ Преимущества</h5>
+                <ul>
+                    <li>Очень быстрый доступ</li>
+                    <li>Снижает нагрузку на БД</li>
+                    <li>Экономит ресурсы</li>
+                    <li>Делает приложение отзывчивым</li>
+                    <li>Простой в использовании</li>
+                </ul>
+            </div>
+            <div class="con-list">
+                <h5>❌ Недостатки</h5>
+                <ul>
+                    <li>Занимает память сервера</li>
+                    <li>Данные могут быть устаревшими</li>
+                    <li>Теряется при перезагрузке</li>
+                    <li>Не работает между серверами</li>
+                    <li>Нужна стратегия инвалидации</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4>Используйте кэш для:</h4>
+        <ul>
+            <li>📊 Статистики и метрик</li>
+            <li>📑 Категорий товаров</li>
+            <li>🌍 Данных из внешних API</li>
+            <li>🔢 Часто выполняемых расчетов</li>
+        </ul>
+    </div>
+
+    <!-- КУКИ -->
+    <div class="info-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+        <h2>🍪 Куки (Client-Side Cookies)</h2>
+        <p>Куки - это небольшие файлы данных, которые хранятся на компьютере клиента и отправляются с каждым запросом к серверу.</p>
+
+        <h4 class="mt-4">Как работают куки:</h4>
+        <ol>
+            <li>Сервер отправляет куки в заголовке Set-Cookie</li>
+            <li>Браузер сохраняет куки на жесткий диск</li>
+            <li>При каждом запросе к тому же домену браузер отправляет куки в заголовке Cookie</li>
+            <li>Сервер может читать значения из заголовка запроса</li>
+        </ol>
+
+        <h4>Код в контроллере (использование):</h4>
+        <div class="code-block">// Чтение куки
+var theme = Request.Cookies["Theme"] ?? "light";
+
+// Создание куки
+var cookieOptions = new CookieOptions
+{
+    Expires = DateTimeOffset.UtcNow.AddDays(30),
+    IsEssential = true,           // Не требует согласия
+    HttpOnly = true,              // Недоступна JavaScript (более безопасно)
+    Secure = true,                // Только по HTTPS
+    SameSite = SameSiteMode.Strict // CSRF защита
+};
+Response.Cookies.Append("Theme", "dark", cookieOptions);
+
+// Удаление куки
+Response.Cookies.Delete("Theme");</div>
+
+        <h4>Структура куки:</h4>
+        <div class="code-block">Set-Cookie: Theme=dark; Expires=Fri, 01 Jan 2025 00:00:00 GMT; Path=/; HttpOnly; Secure; SameSite=Strict</div>
+
+        <div class="pro-con">
+            <div class="pro-list">
+                <h5>✅ Преимущества</h5>
+                <ul>
+                    <li>Не требуют памяти сервера</li>
+                    <li>Работают между серверами</li>
+                    <li>Сохраняются на диск клиента</li>
+                    <li>Поддерживаются всеми браузерами</li>
+                    <li>Можно использовать в JavaScript</li>
+                </ul>
+            </div>
+            <div class="con-list">
+                <h5>❌ Недостатки</h5>
+                <ul>
+                    <li>Видны клиенту (в DevTools)</li>
+                    <li>Ограничение размера (4 KB)</li>
+                    <li>Уязвимы к XSS атакам</li>
+                    <li>Отправляются с каждым запросом</li>
+                    <li>Могут быть отключены в браузере</li>
+                </ul>
+            </div>
+        </div>
+
+        <h4>Используйте куки для:</h4>
+        <ul>
+            <li>🎨 Темы оформления пользователя</li>
+            <li>🌍 Языка интерфейса</li>
+            <li>🔖 Запомнения чекбоксов (Remember me)</li>
+            <li>📊 Отслеживания пользователя (analytics)</li>
+        </ul>
+    </div>
+
+    <!-- СРАВНИТЕЛЬНАЯ ТАБЛИЦА -->
+    <div class="info-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <h2>📊 Детальное сравнение</h2>
+        
+        <div class="table-responsive">
+            <table class="table table-dark">
+                <thead>
+                    <tr style="background: rgba(255, 255, 255, 0.2);">
+                        <th>Характеристика</th>
+                        <th>Сессия</th>
+                        <th>Кэш</th>
+                        <th>Куки</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Где хранится</strong></td>
+                        <td>Память сервера</td>
+                        <td>Память сервера</td>
+                        <td>Жесткий диск клиента</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Кто создает</strong></td>
+                        <td>Сервер</td>
+                        <td>Сервер</td>
+                        <td>Сервер (но хранит клиент)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Время жизни по умолчанию</strong></td>
+                        <td>30 минут неактивности</td>
+                        <td>1 час (настраивается)</td>
+                        <td>365 дней (настраивается)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Размер данных</strong></td>
+                        <td>Неограничен</td>
+                        <td>Неограничен</td>
+                        <td>4 KB максимум</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Область применения</strong></td>
+                        <td>Один браузер = одна сессия</td>
+                        <td>Все пользователи</td>
+                        <td>Один браузер = одна кука</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Уровень безопасности</strong></td>
+                        <td>Высокий (на сервере)</td>
+                        <td>Высокий (на сервере)</td>
+                        <td>Низкий (на клиенте)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Видимость клиенту</strong></td>
+                        <td>Только ID сессии в куке</td>
+                        <td>Невидима</td>
+                        <td>Видима в DevTools</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Производительность</strong></td>
+                        <td>Средняя</td>
+                        <td>Очень высокая</td>
+                        <td>Быстро передается</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Синхронизация между серверами</strong></td>
+                        <td>Требует распределенного хранилища</td>
+                        <td>Требует распределенного кэша</td>
+                        <td>Автоматическая</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- РЕКОМЕНДАЦИИ -->
+    <div class="info-card" style="background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); color: #2d3748;">
+        <h2>💬 Рекомендации по использованию</h2>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h5>🛒 E-Commerce (Интернет-магазин)</h5>
+            <ul>
+                <li><strong>Сессия:</strong> ID пользователя, содержимое корзины, история покупок</li>
+                <li><strong>Кэш:</strong> Список категорий, популярные товары, цены</li>
+                <li><strong>Куки:</strong> Тема оформления, язык, недавно просмотренные товары</li>
+            </ul>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h5>📱 Социальная сеть</h5>
+            <ul>
+                <li><strong>Сессия:</strong> ID текущего пользователя, настройки уведомлений</li>
+                <li><strong>Кэш:</strong> Популярные посты, рекомендации, лента новостей</li>
+                <li><strong>Куки:</strong> Тема, язык, ID устройства для push-уведомлений</li>
+            </ul>
+        </div>
+
+        <div style="background: white; padding: 20px; border-radius: 8px;">
+            <h5>🏥 Медицинский портал</h5>
+            <ul>
+                <li><strong>Сессия:</strong> Данные пациента, результаты анализов, рецепты</li>
+                <li><strong>Кэш:</strong> Справочник лекарств, времени приема врачей</li>
+                <li><strong>Куки:</strong> Язык интерфейса, размер шрифта для инвалидов</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="alert alert-warning mt-5">
+        <h5>⚠️ Важные соображения безопасности</h5>
+        <ul>
+            <li><strong>Никогда</strong> не сохраняйте пароли в куках</li>
+            <li><strong>Используйте HttpOnly</strong> флаг для защиты от XSS атак</li>
+            <li><strong>Используйте Secure</strong> флаг (только HTTPS)</li>
+            <li><strong>Используйте SameSite</strong> флаг для защиты от CSRF</li>
+            <li><strong>Валидируйте</strong> все данные из кук и сессий</li>
+            <li><strong>Регулярно</strong> обновляйте и очищайте кэш</li>
+        </ul>
+    </div>
+
+    <p class="text-center mt-5">
+        <a href="/Demo/Index" class="btn btn-primary btn-lg">← Вернуться к демонстрации</a>
+    </p>
+</div>
