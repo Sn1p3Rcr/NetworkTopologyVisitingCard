@@ -25,7 +25,7 @@ public class ProjectService : IProjectService
         return project is null ? null : MapToDto(project);
     }
 
-    public async Task<ProjectDto> CreateAsync(CreateProjectDto dto, CancellationToken cancellationToken = default)
+    public async Task<ProjectDto> CreateAsync(CreateProjectDto dto, string ownerId, CancellationToken cancellationToken = default)
     {
         var project = new Project
         {
@@ -34,7 +34,8 @@ public class ProjectService : IProjectService
             CreatedDate = DateTime.UtcNow,
             Technologies = dto.Technologies,
             ImageUrl = dto.ImageUrl,
-            Author = dto.Author
+            Author = dto.Author,
+            OwnerId = ownerId
         };
 
         await _unitOfWork.Projects.AddAsync(project, cancellationToken);
@@ -57,6 +58,18 @@ public class ProjectService : IProjectService
         _unitOfWork.Projects.Update(project);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
         return MapToDto(project);
+    }
+
+    public async Task<bool> CanEditProjectAsync(int id, string userId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        if (isAdmin)
+            return true;
+
+        if (string.IsNullOrEmpty(userId))
+            return false;
+
+        var project = await _unitOfWork.Projects.GetByIdAsync(id, cancellationToken);
+        return project is not null && project.OwnerId == userId;
     }
 
     public async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)

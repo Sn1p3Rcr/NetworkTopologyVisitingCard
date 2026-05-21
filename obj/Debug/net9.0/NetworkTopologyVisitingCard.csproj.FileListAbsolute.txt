@@ -879,3 +879,4 @@ C:\6semest\Web\NetworkTopologyVisitingCard\obj\Debug\net9.0\compressed\aj5wvlijp
 C:\6semest\Web\NetworkTopologyVisitingCard\obj\Debug\net9.0\compressed\lungdz58a7-{0}-g6p0t3k0yf-g6p0t3k0yf.gz
 C:\6semest\Web\NetworkTopologyVisitingCard\obj\Debug\net9.0\compressed\41yif7xzws-{0}-6ol6kv5dfy-6ol6kv5dfy.gz
 C:\6semest\Web\NetworkTopologyVisitingCard\obj\Debug\net9.0\compressed\qs1zzl7ysj-{0}-e8a3v5cdvj-e8a3v5cdvj.gz
+C:\6semest\Web\NetworkTopologyVisitingCard\obj\Debug\net9.0\NetworkTopologyVisitingCard.sourcelink.json

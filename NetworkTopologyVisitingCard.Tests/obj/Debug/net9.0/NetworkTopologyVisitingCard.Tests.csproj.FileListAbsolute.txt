@@ -142,3 +142,4 @@ C:\6semest\Web\NetworkTopologyVisitingCard\NetworkTopologyVisitingCard.Tests\obj
 C:\6semest\Web\NetworkTopologyVisitingCard\NetworkTopologyVisitingCard.Tests\obj\Debug\net9.0\NetworkTopologyVisitingCard.Tests.pdb
 C:\6semest\Web\NetworkTopologyVisitingCard\NetworkTopologyVisitingCard.Tests\obj\Debug\net9.0\NetworkTopologyVisitingCard.Tests.genruntimeconfig.cache
 C:\6semest\Web\NetworkTopologyVisitingCard\NetworkTopologyVisitingCard.Tests\obj\Debug\net9.0\ref\NetworkTopologyVisitingCard.Tests.dll
+C:\6semest\Web\NetworkTopologyVisitingCard\NetworkTopologyVisitingCard.Tests\obj\Debug\net9.0\NetworkTopologyVisitingCard.Tests.sourcelink.json

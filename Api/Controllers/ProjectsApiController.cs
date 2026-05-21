@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,14 +38,28 @@ public class ProjectsApiController : ControllerBase
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "User,Admin")]
     public async Task<ActionResult<ProjectDto>> Create([FromBody] CreateProjectDto dto, CancellationToken cancellationToken)
     {
-        var project = await _projectService.CreateAsync(dto, cancellationToken);
+        var ownerId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var ownerEmail = User.FindFirstValue(JwtRegisteredClaimNames.Email) ?? User.FindFirstValue(ClaimTypes.Email) ?? User.Identity?.Name ?? string.Empty;
+        dto.Author = ownerEmail;
+
+        var project = await _projectService.CreateAsync(dto, ownerId ?? string.Empty, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = project.Id }, project);
     }
 
     [HttpPut("{id:int}")]
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "Admin")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "User,Admin")]
     public async Task<ActionResult<ProjectDto>> Update(int id, [FromBody] UpdateProjectDto dto, CancellationToken cancellationToken)
     {
+        var userId = User.FindFirstValue(JwtRegisteredClaimNames.Sub) ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isAdmin = User.IsInRole("Admin");
+
+        var existing = await _projectService.GetByIdAsync(id, cancellationToken);
+        if (existing is null)
+            return NotFound();
+
+        if (!await _projectService.CanEditProjectAsync(id, userId ?? string.Empty, isAdmin, cancellationToken))
+            return Forbid();
+
         var project = await _projectService.UpdateAsync(id, dto, cancellationToken);
         return project is null ? NotFound() : Ok(project);
     }

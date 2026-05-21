@@ -23,6 +23,8 @@ namespace NetworkTopologyVisitingCard.Models
         public string ImageUrl { get; set; } = string.Empty;
         
         public string Author { get; set; } = string.Empty;
+        public string? OwnerId { get; set; }
+        public ApplicationUser? Owner { get; set; }
 
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<NetworkTopology> NetworkTopologies { get; set; } = new List<NetworkTopology>();
