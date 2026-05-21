@@ -57,7 +57,7 @@ public class ProjectServiceTests
 
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(It.IsAny<CancellationToken>())).ReturnsAsync(1);
 
-        var result = await _service.CreateAsync(dto);
+        var result = await _service.CreateAsync(dto, "user-1");
 
         Assert.Equal("New", result.Title);
         _projectRepositoryMock.Verify(r => r.AddAsync(It.IsAny<Project>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -75,6 +75,28 @@ public class ProjectServiceTests
 
         Assert.True(result);
         _projectRepositoryMock.Verify(r => r.Remove(project), Times.Once);
+    }
+
+    [Fact]
+    public async Task CanEditProjectAsync_WhenOwner_ReturnsTrue()
+    {
+        var project = new Project { Id = 1, Title = "X", Description = "D", Author = "A", OwnerId = "user-1" };
+        _projectRepositoryMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(project);
+
+        var result = await _service.CanEditProjectAsync(1, "user-1", false);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task CanEditProjectAsync_WhenDifferentUser_ReturnsFalse()
+    {
+        var project = new Project { Id = 1, Title = "X", Description = "D", Author = "A", OwnerId = "user-1" };
+        _projectRepositoryMock.Setup(r => r.GetByIdAsync(1, It.IsAny<CancellationToken>())).ReturnsAsync(project);
+
+        var result = await _service.CanEditProjectAsync(1, "user-2", false);
+
+        Assert.False(result);
     }
 
     [Fact]

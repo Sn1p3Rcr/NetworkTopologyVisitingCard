@@ -60,7 +60,11 @@ namespace NetworkTopologyVisitingCard.Controllers
         {
             if (ModelState.IsValid)
             {
+                var userId = _userManager.GetUserId(User);
+                
                 project.CreatedDate = DateTime.UtcNow;
+                project.OwnerId = userId; // Устанавливаем владельца проекта
+                
                 _context.Add(project);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -69,7 +73,7 @@ namespace NetworkTopologyVisitingCard.Controllers
         }
 
         // GET: Projects/Edit/5
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -82,13 +86,20 @@ namespace NetworkTopologyVisitingCard.Controllers
             {
                 return NotFound();
             }
+
+            // Проверяем, является ли пользователь владельцем или админом
+            if (!await IsProjectOwnerAsync(project))
+            {
+                return Forbid(); // 403 Forbidden
+            }
+
             return View(project);
         }
 
         // POST: Projects/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,CreatedDate,Technologies,ImageUrl,Author")] Project project)
         {
             if (id != project.Id)
@@ -96,11 +107,29 @@ namespace NetworkTopologyVisitingCard.Controllers
                 return NotFound();
             }
 
+            var existingProject = await _context.Projects.FindAsync(id);
+            if (existingProject == null)
+            {
+                return NotFound();
+            }
+
+            // Проверяем права собственности
+            if (!await IsProjectOwnerAsync(existingProject))
+            {
+                return Forbid();
+            }
+
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(project);
+                    existingProject.Title = project.Title;
+                    existingProject.Description = project.Description;
+                    existingProject.Technologies = project.Technologies;
+                    existingProject.ImageUrl = project.ImageUrl;
+                    existingProject.Author = project.Author;
+                    
+                    _context.Update(existingProject);
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -120,7 +149,7 @@ namespace NetworkTopologyVisitingCard.Controllers
         }
 
         // GET: Projects/Delete/5
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -135,18 +164,30 @@ namespace NetworkTopologyVisitingCard.Controllers
                 return NotFound();
             }
 
+            // Проверяем права собственности
+            if (!await IsProjectOwnerAsync(project))
+            {
+                return Forbid();
+            }
+
             return View(project);
         }
 
         // POST: Projects/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var project = await _context.Projects.FindAsync(id);
             if (project != null)
             {
+                // Проверяем права собственности
+                if (!await IsProjectOwnerAsync(project))
+                {
+                    return Forbid();
+                }
+
                 _context.Projects.Remove(project);
             }
 
@@ -157,6 +198,15 @@ namespace NetworkTopologyVisitingCard.Controllers
         private bool ProjectExists(int id)
         {
             return _context.Projects.Any(e => e.Id == id);
+        }
+
+        // Проверяет, является ли текущий пользователь владельцем проекта или админом
+        private async Task<bool> IsProjectOwnerAsync(Project project)
+        {
+            var currentUserId = _userManager.GetUserId(User);
+            var isAdmin = User.IsInRole("Admin");
+            
+            return project.OwnerId == currentUserId || isAdmin;
         }
     }
 }

@@ -45,5 +45,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasOne(pt => pt.Technology)
             .WithMany(t => t.ProjectTechnologies)
             .HasForeignKey(pt => pt.TechnologyId);
+
+        builder.Entity<Project>()
+            .HasOne(p => p.Owner)
+            .WithMany(u => u.Projects)
+            .HasForeignKey(p => p.OwnerId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
